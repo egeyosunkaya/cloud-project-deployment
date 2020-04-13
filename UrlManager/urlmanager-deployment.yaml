@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: urlmanager
+spec:
+  selector:
+    matchLabels:
+      app: urlmanager
+  template:
+    metadata:
+      labels:
+        app: urlmanager
+    spec:
+      containers:
+      - name: urlmanager
+        image: egeyosunkaya/urlmanager:0.1
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+            - mountPath: /usr/config
+              name: urlmanager-app-config
+        env:
+            - name: SPRING_CONFIG_LOCATION
+              value: /usr/config/application.yml
+      volumes:
+          - name: urlmanager-app-config
+            configMap:
+                  defaultMode: 420
+                  name: urlmanager-app-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: urlmanager-svc
+spec:
+  type: NodePort
+  selector:
+    app: urlmanager
+  ports:
+  - port: 8080
+    targetPort: 8080
+    nodePort: 30080
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: urlmanager-app-config
+data:
+  application.yml: |-
+    spring:
+      jpa:
+        database: postgresql
+        show-sql: true
+        hibernate:
+          ddl-auto: create-drop
+        properties:
+          hibernate:
+            dialect: org.hibernate.dialect.PostgreSQLDialect
+            generate-ddl: true
+      datasource:
+        url: jdbc:postgresql://postgresql-svc:5432/url
+        username: urlmanager
+        password: urlmanager
+        initialization-mode: always
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: prometheus
+    jwt:
+      secret: cloudproject
+
+
