@@ -13,7 +13,7 @@ spec:
     spec:
       containers:
       - name: urlmanager
-        image: egeyosunkaya/urlmanager:0.1
+        image: egeyosunkaya/urlmanager:0.2
         resources:
           limits:
             memory: "256Mi"
