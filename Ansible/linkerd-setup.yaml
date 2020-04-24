@@ -1,0 +1,69 @@
+---
+- hosts: localhost
+  vars: 
+    ansible_ssh_user: egeyosunkaya
+    ansible_ssh_pass: Egeyos1995..
+    remote_path: ~/temp
+  tasks:
+    - name: Install Linkerd if MacosX
+      shell:
+          cmd: >
+            brew install linkerd
+      when: ansible_distribution == 'MacOSX'
+    # TODO: add other distributions
+
+    - name: Check if linkerd applied before
+      shell: 
+        cmd: >
+          kubectl get namespaces|grep linkerd|awk '{print $2}'
+      register: is_active_linkerd
+    - name: Debug is active
+      debug:
+          var: is_active_linkerd # not required. A variable name to debug.  Mutually exclusive with the 'msg' option.
+
+
+    - name: Check kubernetes compability
+      shell: 
+        cmd: "linkerd check --pre"
+      register: pre_check
+      when: is_active_linkerd is not defined
+      
+    - name: Output precheck
+      debug:
+        var: pre_check
+      when: is_active_linkerd is not defined
+
+    - name: Apply linkerd
+      shell:
+        cmd: "linkerd install | kubectl apply -f -"
+      when: is_active_linkerd is not defined
+
+    - name: Check after installation
+      shell:
+        cmd: "linkerd check"
+      register: post_check
+      when: is_active_linkerd is not defined
+
+    - name: Output precheck
+      debug:
+        var: post_check
+      when: is_active_linkerd is not defined
+
+    - name: Copy All Deployment files
+      copy:
+        src: "{{ playbook_dir }}/Deployments"
+        dest: "{{ remote_path }}"
+        mode: '0644'
+    - name: Delete all resources
+      shell:
+        cmd: "kubectl delete all --all" 
+    - name: Apply all resources with linkerd
+      shell:
+        cmd: "linkerd inject {{ remote_path }} | kubectl apply -f -"
+    - name: Delete all deployment files
+      file:
+        path: "{{ remote_path }}"
+        state: absent
+
+    
+

@@ -1,0 +1,95 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: urlapp
+  name: auth-app-config
+data:
+  application.yml: |-
+    spring:
+      jpa:
+        database: postgresql
+        show-sql: true
+        hibernate:
+          ddl-auto: create
+        properties:
+          hibernate:
+            dialect: org.hibernate.dialect.PostgreSQLDialect
+            generate-ddl: true
+      datasource:
+        url: jdbc:postgresql://postgresql-svc:5432/appuser
+        username: authapp
+        password: authapp
+        initialization-mode: always
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: prometheus
+    jwt:
+      secret: cloudproject
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: urlapp
+  name: authapp
+  annotations:
+    linkerd.io/inject: enabled
+    prometheus.io/scrape: 'true'
+    prometheus.io/path: '/actuator/prometheus'
+spec:
+  selector:
+    matchLabels:
+      app: authapp
+  template:
+    metadata:
+      labels:
+        app: authapp
+    spec:
+      containers:
+      - name: urlmanager
+        image: egeyosunkaya/authapp:0.1
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        readinessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 1
+          successThreshold: 1
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+            - mountPath: /usr/config
+              name: auth-app-config
+        env:
+            - name: SPRING_CONFIG_LOCATION
+              value: /usr/config/application.yml
+      volumes:
+          - name: auth-app-config
+            configMap:
+                  defaultMode: 420
+                  name: auth-app-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: urlapp
+  name: authapp-svc
+spec:
+
+  selector:
+    app: authapp
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+
+
+
+

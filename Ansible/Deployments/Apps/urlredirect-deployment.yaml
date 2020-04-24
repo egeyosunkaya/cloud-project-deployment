@@ -1,56 +1,68 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: urlmanager
+  namespace: urlapp
+  name: urlredirect
+  annotations:
+    linkerd.io/inject: enabled
 spec:
   selector:
     matchLabels:
-      app: urlmanager
+      app: urlredirect
   template:
     metadata:
       labels:
-        app: urlmanager
+        app: urlredirect
     spec:
       containers:
-      - name: urlmanager
-        image: egeyosunkaya/urlmanager:0.2
+      - name: urlredirect
+        image: egeyosunkaya/urlredirect:0.1
         resources:
-          limits:
-            memory: "256Mi"
-            cpu: "500m"
+          requests:
+            memory: 128Mi
+            cpu: 200m
+        readinessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 1
+          successThreshold: 1
         ports:
         - containerPort: 8080
         volumeMounts:
             - mountPath: /usr/config
-              name: urlmanager-app-config
+              name: urlredirect-app-config
         env:
             - name: SPRING_CONFIG_LOCATION
               value: /usr/config/application.yml
       volumes:
-          - name: urlmanager-app-config
+          - name: urlredirect-app-config
             configMap:
                   defaultMode: 420
-                  name: urlmanager-app-config
+                  name: urlredirect-app-config
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: urlmanager-svc
+  namespace: urlapp
+  name: urlredirect-svc
 spec:
-  type: NodePort
   selector:
-    app: urlmanager
+    app: urlredirect
   ports:
-  - port: 8080
+  - name: http
+    port: 80
     targetPort: 8080
-    nodePort: 30080
 
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: urlmanager-app-config
+  namespace: urlapp
+  name: urlredirect-app-config
 data:
   application.yml: |-
     spring:
@@ -58,7 +70,7 @@ data:
         database: postgresql
         show-sql: true
         hibernate:
-          ddl-auto: create-drop
+          ddl-auto: none
         properties:
           hibernate:
             dialect: org.hibernate.dialect.PostgreSQLDialect
