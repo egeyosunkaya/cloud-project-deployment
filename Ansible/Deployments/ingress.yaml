@@ -19,6 +19,15 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  name: auth-external
+  namespace: ingress-nginx
+spec:
+  type: ExternalName
+  externalName: auth-svc.urlapp.svc.cluster.local
+---
+apiVersion: v1
+kind: Service
+metadata:
   name: prometheus-external
   namespace: ingress-nginx
 spec:
@@ -79,9 +88,23 @@ spec:
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
+  name: auth-ingress
+  namespace: ingress-nginx
+spec:
+  rules:
+    - host: auth.rdrct.pw
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: auth-external
+              servicePort: 80
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
   name: monitoring-ingress
   namespace: ingress-nginx
-  annotations:
 spec:
   rules:
     - host: prometheus.rdrct.pw

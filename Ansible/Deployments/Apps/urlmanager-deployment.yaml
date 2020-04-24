@@ -27,6 +27,10 @@ data:
             include: prometheus
     jwt:
       secret: cloudproject
+    app:
+      shortlink-prefix: rdrct.pw/
+      login-url: http://auth-svc/login
+      signup-url: http://auth-svc/signup
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -69,6 +73,8 @@ spec:
         env:
             - name: SPRING_CONFIG_LOCATION
               value: /usr/config/application.yml
+            - name: DOMAIN_NAME
+              value: rdrct.pw
       volumes:
           - name: urlmanager-app-config
             configMap:
