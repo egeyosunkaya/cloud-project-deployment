@@ -52,7 +52,7 @@ spec:
     spec:
       containers:
       - name: urlmanager
-        image: egeyosunkaya/urlmanager:0.3
+        image: egeyosunkaya/urlmanager:0.5
         resources:
           requests:
             cpu: 200m
